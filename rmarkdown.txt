@@ -1,0 +1,87 @@
+---
+title: "Financial Returns Analysis for Tencent Holdings"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(quantmod)
+library(ggplot2)
+library(urca)
+library(forecast)
+library(rugarch)
+Fetching Data
+{r
+Copy code
+# Define the symbol for Tencent Holdings on the Hong Kong Stock Exchange
+symbol <- "0700.HK"
+
+# Set the start and end dates for the data retrieval
+start_date <- Sys.Date() - (365 * 5)  # Five years ago from today
+end_date <- Sys.Date()
+
+# Fetch the historical stock prices using quantmod
+getSymbols(symbol, src = "yahoo", from = start_date, to = end_date)
+
+# Access the daily closing prices for the retrieved data
+closing_prices <- Cl(get(symbol))
+Compute Daily Log Returns
+{r
+Copy code
+# Compute the daily log returns
+log_returns <- diff(log(closing_prices))
+
+# Convert the data to a data frame with a "Date" column
+returns_df <- data.frame(Date = index(log_returns), Returns = log_returns)
+Stationarity Analysis
+{r
+Copy code
+# Perform the ADF test for stationarity
+adf_test <- ur.df(log_returns, type = "drift", selectlags = "AIC")
+summary(adf_test)
+Autocorrelation Analysis
+{r
+Copy code
+# Calculate ACF and PACF of log returns
+acf_data <- acf(log_returns, lag.max = 20)
+pacf_data <- pacf(log_returns, lag.max = 20)
+
+# Plot ACF and PACF
+autoplot(acf_data) + xlab("Lag") + ylab("ACF")
+autoplot(pacf_data) + xlab("Lag") + ylab("PACF")
+Normality Analysis
+{r
+Copy code
+# Shapiro-Wilk test for normality
+shapiro_test <- shapiro.test(log_returns)
+shapiro_test$p.value
+
+# Jarque-Bera test for normality
+jarque_bera_test <- jarque.bera.test(log_returns)
+jarque_bera_test$p.value
+Volatility Clustering Analysis
+{r
+Copy code
+# Fit a GARCH(1,1) model to estimate conditional volatility
+garch_model <- ugarchspec(variance.model = list(model = "sGARCH", garchOrder = c(1, 1)))
+garch_fit <- ugarchfit(garch_model, data = log_returns)
+conditional_volatility <- as.numeric(sigma(garch_fit))
+
+# Plot conditional volatility
+df_volatility <- data.frame(Date = index(log_returns), Volatility = conditional_volatility)
+ggplot(df_volatility, aes(x = Date, y = Volatility)) +
+  geom_line() +
+  labs(title = "Conditional Volatility", x = "Date", y = "Volatility")
+Leverage Effect Analysis
+{r
+Copy code
+# Calculate correlation between returns and conditional volatility
+correlation <- cor(log_returns, conditional_volatility)
+
+# Print correlation coefficient
+correlation
+In this analysis, we first fetch the historical stock prices for Tencent Holdings and compute the daily log returns. We then proceed to analyze the features of financial returns:
+
+Stationarity: We perform the Augmented Dickey-Fuller (ADF) test to assess stationarity.
+
+Autocorrelation: We calculate and
